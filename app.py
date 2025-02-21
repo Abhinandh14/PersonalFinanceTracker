@@ -1,78 +1,4 @@
-# import tkinter as tk
 
-# root = tk.Tk()
-# root.title("Personal Finance Tracker")
-
-# # Set the background color
-# root.configure(background="#f2f2f2")
-
-# # Create a label with a custom font and color
-# label = tk.Label(root, text="Personal Finance Tracker", font=("Arial", 24), fg="#00698f")
-# label.pack(pady=20)
-
-# # Create a frame to hold the main components
-# main_frame = tk.Frame(root)
-# main_frame.pack(fill="both", expand=True)
-
-# # Create a label and text field for the user to enter their income
-# income_label = tk.Label(main_frame, text="Income:")
-# income_label.pack()
-# income_text = tk.Entry(main_frame)
-# income_text.pack()
-
-# # Create a label and text field for the user to enter their expenses
-# expenses_label = tk.Label(main_frame, text="Expenses:")
-# expenses_label.pack()
-# expenses_text = tk.Entry(main_frame)
-# expenses_text.pack()
-
-
-
-# # The code creates a main frame to hold the components of the application, including labels and text fields for the user to enter their income and expenses. The components are packed into the main frame using the pack() method. The main frame is then packed into the main window using the pack() method. Finally, the main window enters the main event loop using the mainloop() method.
-
-
-# # Create the frames for the different sections of the application
-# frame_header = tk.Frame(root)
-# frame_content = tk.Frame(root)
-# frame_footer = tk.Frame(root)
-
-# # Pack the frames into the main window
-# frame_header.pack(fill="x")
-# frame_content.pack(fill="both", expand=True)
-# frame_footer.pack(fill="x")
-
-
-
-# # Create the labels and buttons for the header frame
-# label_header = tk.Label(frame_header, text="Personal Finance Tracker")
-# button_add_transaction = tk.Button(frame_header, text="Add Transaction")
-
-# # Pack the labels and buttons into the header frame
-# label_header.pack(side="left")
-# button_add_transaction.pack(side="right")
-
-# # Create the labels and entry fields for the content frame
-# label_date = tk.Label(frame_content, text="Date:")
-# entry_date = tk.Entry(frame_content)
-# label_amount = tk.Label(frame_content, text="Amount:")
-# entry_amount = tk.Entry(frame_content)
-
-# # Pack the labels and entry fields into the content frame
-# label_date.grid(row=0, column=0)
-# entry_date.grid(row=0, column=1)
-# label_amount.grid(row=1, column=0)
-# entry_amount.grid(row=1, column=1)
-
-
-
-
-
-
-# # Create a button with a custom background color and font
-# button = tk.Button(root, text="Add Transaction", bg="#4CAF50", font=("Arial", 18), fg="#ffffff")
-# button.pack(pady=10)
-
-# root.mainloop()
 
 import tkinter as tk
 from datetime import date
@@ -84,6 +10,7 @@ class FinanceTracker:
         self.window = tk.Tk()
         self.window.title("Personal Finance Tracker")
         self.window.geometry("600x500")
+        self.transactions = []
         self.create_main_ui()
         
     def create_main_ui(self):
@@ -133,8 +60,13 @@ class FinanceTracker:
     def add_transaction(self):
         transaction_window = tk.Toplevel(self.window)
         transaction_window.title("Add Transaction")
-        transaction_window.geometry("300x250")
-        
+        transaction_window.geometry("300x300")
+
+        label_date = tk.Label(transaction_window, text="Date (YYYY-MM-DD):")
+        label_date.pack(pady=5)
+        entry_date = tk.Entry(transaction_window)
+        entry_date.pack(pady=5)
+
         label_amount = tk.Label(transaction_window, text="Transaction Amount:")
         label_amount.pack(pady=5)
         entry_amount = tk.Entry(transaction_window)
@@ -153,18 +85,52 @@ class FinanceTracker:
         # button_save = tk.Button(transaction_window, text="Save", command=lambda: self.save_transaction(entry_amount.get()))
         # button_save.pack(pady=10)
         button_save = tk.Button(transaction_window, text="Save", bg="#4CAF50", fg="white", font=("Arial", 14),
-                                command=lambda: self.save_transaction(entry_amount.get(), entry_category.get(), entry_description.get(), transaction_window))
+                                command=lambda: self.save_transaction(entry_date.get(), entry_amount.get(), entry_category.get(), entry_description.get(), transaction_window))
         button_save.pack(pady=10)
+
+    def calculate_total(self):
+        total = 0
+        for transaction in self.transactions:
+            total += transaction.amount
+        return total
+
+    def categorize_transactions(self):
+        categorized_transactions = {}
+        for transaction in self.transactions:
+            if transaction.category not in categorized_transactions:
+                categorized_transactions[transaction.category] = []
+            categorized_transactions[transaction.category].append(transaction)
+        return categorized_transactions
     
-    def save_transaction(self, amount, category, description, window):
+    def save_transaction(self, transaction_date, amount, category, description, window):
         # 
         try:
-            transaction = FinancialTransaction(date.today(), float(amount), category, description)
+            #amount = float(amount)
+            # Create a temp transaction object to validate data
+            transaction = FinancialTransaction(transaction_date, float(amount), category, description)
+
+            if not transaction.validate_date(transaction_date):
+                raise ValueError("Invalid date format. Please use YYYY-MM-DD.")
+
+            if not transaction.validate_amount(float(amount)):
+                raise ValueError("Amount should be a positive number.")
+
+            if not transaction.validate_category(category):
+                raise ValueError("Invalid category. Use 'income', 'expense', or 'transfer'.")
+
+            if not transaction.validate_description(description):
+                raise ValueError("Description cannot be empty.")
+
+            #transaction = FinancialTransaction(transaction_date, float(amount), category, description)
+            # If all validations pass, add the transaction
+            self.transactions.append(transaction)
             print(f"Transaction Saved: {transaction.transaction_date}, {transaction.amount}, {transaction.category}, {transaction.description}")
-            messagebox.showinfo("Transaction Saved", f"Transaction of {transaction.amount} added successfully!")
+            messagebox.showinfo("Transaction Saved", f"Transaction of {transaction.amount} added successfully!", parent=window)
             window.destroy()
-        except ValueError:
-            messagebox.showerror("Invalid Input", "Please enter a valid numeric amount.")
+        except ValueError as e:  # Catch the specific error message
+            window.lift()  
+            window.focus_force()
+            messagebox.showerror("Invalid Input", str(e), parent=window)
 
     def run(self):
         self.window.mainloop()
